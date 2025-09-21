@@ -1,7 +1,7 @@
-import ImageLayer from "../components/ui/ImageLayer";
-import SearchBar from "../components/ui/SearchBar";
+import ImageLayer from "../../components/ui/ImageLayer";
+import SearchBar from "../../components/ui/SearchBar";
 
-export default function HomePage() {
+export default function DashboardPage() {
   return (
     <div>
       <ImageLayer />
