@@ -9,8 +9,10 @@ import CommonButton from "../../components/ui/CommonButton";
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { isAuthenticated, loading, error } = useAppSelector((state) => state.auth);
-  
+  const { isAuthenticated, loading, error } = useAppSelector(
+    (state) => state.auth
+  );
+
   const [form, setForm] = useState({ username: "", password: "" });
 
   // Redirect to dashboard if already authenticated
@@ -29,16 +31,18 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!form.username.trim() || !form.password.trim()) {
       return;
     }
 
     try {
-      const result = await dispatch(loginUser({
-        username: form.username.trim(),
-        password: form.password
-      })).unwrap();
+      const result = await dispatch(
+        loginUser({
+          username: form.username.trim(),
+          password: form.password,
+        })
+      ).unwrap();
 
       if (result) {
         router.push("/dashboard");
@@ -50,8 +54,8 @@ export default function LoginPage() {
   };
 
   const handleInputChange = (field: "username" | "password", value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    
+    setForm((prev) => ({ ...prev, [field]: value }));
+
     // Clear error when user starts typing
     if (error) {
       dispatch(clearError());
@@ -89,9 +93,9 @@ export default function LoginPage() {
             disabled={loading}
           />
 
-          <CommonButton 
-            type="submit" 
-            label={loading ? "Logging in..." : "Login"} 
+          <CommonButton
+            type="submit"
+            label={loading ? "Logging in..." : "Login"}
             variant="primary"
             disabled={loading || !form.username.trim() || !form.password.trim()}
           />

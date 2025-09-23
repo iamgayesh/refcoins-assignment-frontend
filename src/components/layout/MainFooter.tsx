@@ -1,8 +1,10 @@
+const currentYear = new Date().getFullYear();
+
 export default function MainFooter() {
   return (
-    <footer className="bg-gray-800 text-white py-6 mt-8">
+    <footer className="bg-background text-foreground border-t border-gray-200 dark:border-gray-700 py-6 mt-8 transition-colors">
       <div className="max-w-7xl mx-auto text-center text-sm">
-        © {new Date().getFullYear()} PropertyApp. All rights reserved.
+        © {currentYear} PropertyApp. All rights reserved.
       </div>
     </footer>
   );
