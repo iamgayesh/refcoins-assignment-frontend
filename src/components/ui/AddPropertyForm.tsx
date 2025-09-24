@@ -4,9 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { fetchAllLookupData } from "../../redux/slices/lookupSlice";
 import { fetchAllProperties } from "../../redux/slices/propertySlice";
-import PropertyApiService, {
-  CreatePropertyData,
-} from "../../lib/propertyApiService";
+import { CreatePropertyData } from "../../lib/propertyApiService";
 import CommonButton from "./CommonButton";
 
 interface AddPropertyFormProps {
@@ -38,25 +36,14 @@ export default function AddPropertyForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Load lookup data when component mounts
+  // local file
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   useEffect(() => {
     if (types.length === 0 || locations.length === 0 || statuses.length === 0) {
       dispatch(fetchAllLookupData());
     }
   }, [dispatch, types.length, locations.length, statuses.length]);
-
-  // Auto-generate slug from title
-  useEffect(() => {
-    if (formData.propertyTitle) {
-      const slug = formData.propertyTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .trim();
-      setFormData((prev) => ({ ...prev, propertySlug: slug }));
-    }
-  }, [formData.propertyTitle]);
 
   const handleInputChange = (
     field: keyof CreatePropertyData,
@@ -95,35 +82,72 @@ export default function AddPropertyForm({
       setError("Property area must be greater than 0");
       return false;
     }
+    if (!formData.propertyDescription.trim()) {
+      setError("Property description is required");
+      return false;
+    }
+    if (!selectedFile) {
+      setError("Property image is required");
+      return false;
+    }
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     setLoading(true);
     setError("");
 
     try {
-      const result = await PropertyApiService.createProperty(formData);
+      // Create FormData with both property data and image
+      const submitFormData = new FormData();
 
-      if (result) {
-        // Refresh the properties list
+      // Add the image file
+      submitFormData.append("image", selectedFile as File);
+
+      // Add all property data
+      submitFormData.append("propertyTitle", formData.propertyTitle);
+      submitFormData.append("propertySlug", formData.propertySlug);
+      submitFormData.append(
+        "propertyLocation",
+        formData.propertyLocation.toString()
+      );
+      submitFormData.append(
+        "propertyDescription",
+        formData.propertyDescription
+      );
+      submitFormData.append("propertyPrice", formData.propertyPrice.toString());
+      submitFormData.append("propertyType", formData.propertyType.toString());
+      submitFormData.append(
+        "propertyStatus",
+        formData.propertyStatus.toString()
+      );
+      submitFormData.append("propertyArea", formData.propertyArea.toString());
+
+      // Call the combined endpoint
+      const response = await fetch(
+        "http://localhost:7000/properties/create-with-image",
+        {
+          method: "POST",
+          body: submitFormData,
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.responseCode === "00") {
+        console.log("✅ Property created successfully:", result);
         dispatch(fetchAllProperties());
-
-        // Call success callback
-        if (onSuccess) onSuccess();
-
-        // Close the modal
+        onSuccess?.();
         onClose();
       } else {
-        setError("Failed to create property. Please try again.");
+        setError(result.responseMsg || "Failed to create property.");
       }
-    } catch (error) {
-      setError("An error occurred while creating the property.");
-      console.error("Create property error:", error);
+    } catch (err) {
+      console.error("❌ Error creating property:", err);
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -146,7 +170,7 @@ export default function AddPropertyForm({
         </div>
       )}
 
-      {/* Property Title + Slug */}
+      {/* Title + Slug */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -156,10 +180,9 @@ export default function AddPropertyForm({
             type="text"
             value={formData.propertyTitle}
             onChange={(e) => handleInputChange("propertyTitle", e.target.value)}
-            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white"
             placeholder="Enter property title"
             required
-            disabled={loading}
           />
         </div>
 
@@ -171,10 +194,9 @@ export default function AddPropertyForm({
             type="text"
             value={formData.propertySlug}
             onChange={(e) => handleInputChange("propertySlug", e.target.value)}
-            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white"
             placeholder="property-slug"
             required
-            disabled={loading}
           />
         </div>
       </div>
@@ -190,9 +212,8 @@ export default function AddPropertyForm({
             onChange={(e) =>
               handleInputChange("propertyLocation", Number(e.target.value))
             }
-            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white"
             required
-            disabled={loading}
           >
             <option value={0}>Select Location</option>
             {locations.map((location) => (
@@ -212,9 +233,8 @@ export default function AddPropertyForm({
             onChange={(e) =>
               handleInputChange("propertyType", Number(e.target.value))
             }
-            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white"
             required
-            disabled={loading}
           >
             <option value={0}>Select Type</option>
             {types.map((type) => (
@@ -237,9 +257,8 @@ export default function AddPropertyForm({
             onChange={(e) =>
               handleInputChange("propertyStatus", Number(e.target.value))
             }
-            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white"
             required
-            disabled={loading}
           >
             <option value={0}>Select Status</option>
             {statuses.map((status) => (
@@ -260,16 +279,15 @@ export default function AddPropertyForm({
             onChange={(e) =>
               handleInputChange("propertyPrice", Number(e.target.value))
             }
-            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white"
             placeholder="0"
             min="1"
             required
-            disabled={loading}
           />
         </div>
       </div>
 
-      {/* Area + Image URL */}
+      {/* Area + Image Upload */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -281,60 +299,53 @@ export default function AddPropertyForm({
             onChange={(e) =>
               handleInputChange("propertyArea", Number(e.target.value))
             }
-            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white"
             placeholder="0"
             min="1"
             required
-            disabled={loading}
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
-            Image URL
+            Upload Image *
           </label>
           <input
-            type="url"
-            value={formData.propertyImagePath}
-            onChange={(e) =>
-              handleInputChange("propertyImagePath", e.target.value)
-            }
-            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="https://example.com/image.jpg"
-            disabled={loading}
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              if (e.target.files?.[0]) {
+                setSelectedFile(e.target.files[0]);
+              }
+            }}
+            className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white"
+            required
           />
         </div>
       </div>
 
-      {/* Description (full width) */}
+      {/* Description */}
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">
-          Description
+          Description *
         </label>
         <textarea
           value={formData.propertyDescription}
           onChange={(e) =>
             handleInputChange("propertyDescription", e.target.value)
           }
-          className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-white"
           placeholder="Enter property description"
           rows={3}
-          disabled={loading}
+          required
         />
       </div>
 
-      {/* Submit Buttons */}
-      <div className="flex gap-3 pt-4">
+      {/* Buttons */}
+      <div className="flex gap-2 pt-4 flex-wrap">
         <CommonButton
           type="button"
           label="Cancel"
-          variant="secondary"
-          onClick={onClose}
-          disabled={loading}
-        />
-        <CommonButton
-          type="button"
-          label="Reset"
           variant="secondary"
           onClick={onClose}
           disabled={loading}

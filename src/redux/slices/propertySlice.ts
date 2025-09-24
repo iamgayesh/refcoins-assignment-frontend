@@ -1,16 +1,25 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import PropertyApiService, { Property } from "../../lib/propertyApiService";
+import PropertyApiService, {
+  Property,
+  PaginationInfo,
+} from "../../lib/propertyApiService";
 
 export interface PropertyState {
   properties: Property[];
+  paginatedProperties: Property[];
+  pagination: PaginationInfo | null;
   loading: boolean;
+  paginationLoading: boolean;
   error: string | null;
   selectedProperty: Property | null;
 }
 
 const initialState: PropertyState = {
   properties: [],
+  paginatedProperties: [],
+  pagination: null,
   loading: false,
+  paginationLoading: false,
   error: null,
   selectedProperty: null,
 };
@@ -35,6 +44,25 @@ export const fetchPropertyById = createAsyncThunk(
     try {
       const property = await PropertyApiService.getPropertyById(id);
       return property;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+// Async thunk for fetching paginated properties
+export const fetchPropertiesPaginated = createAsyncThunk(
+  "property/fetchPropertiesPaginated",
+  async (
+    { page, limit }: { page: number; limit?: number },
+    { rejectWithValue }
+  ) => {
+    try {
+      const result = await PropertyApiService.getPropertiesPaginated(
+        page,
+        limit || 3
+      );
+      return result;
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
@@ -85,6 +113,23 @@ const propertySlice = createSlice({
       })
       .addCase(fetchPropertyById.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch paginated properties cases
+      .addCase(fetchPropertiesPaginated.pending, (state) => {
+        state.paginationLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchPropertiesPaginated.fulfilled, (state, action) => {
+        state.paginationLoading = false;
+        if (action.payload) {
+          state.paginatedProperties = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+        state.error = null;
+      })
+      .addCase(fetchPropertiesPaginated.rejected, (state, action) => {
+        state.paginationLoading = false;
         state.error = action.payload as string;
       });
   },

@@ -8,7 +8,8 @@ interface ListingCardProps {
 }
 
 const ListingCard: React.FC<ListingCardProps> = ({ property }) => {
-  const imageSrc = property.propertyImagePath || "/images/hero-bg.png";
+  const imageSrc =
+    property.imageUrl || property.propertyImagePath || "/images/hero-bg.png";
 
   // Format price in LKR
   const formatPrice = (price: number) => {

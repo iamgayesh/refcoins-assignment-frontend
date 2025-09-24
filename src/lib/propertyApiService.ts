@@ -29,20 +29,37 @@ export interface Property {
   };
   propertyArea: number;
   propertyImagePath: string;
+  imageUrl?: string; // Full URL for image display
   createdAt: string;
   updatedAt: string;
+}
+
+// Pagination interface
+export interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+// Paginated response interface
+export interface PaginatedPropertiesResponse {
+  data: Property[];
+  pagination: PaginationInfo;
 }
 
 export interface CreatePropertyData {
   propertyTitle: string;
   propertySlug: string;
   propertyLocation: number;
-  propertyDescription?: string;
+  propertyDescription: string;
   propertyPrice: number;
   propertyType: number;
   propertyStatus: number;
   propertyArea: number;
-  propertyImagePath?: string;
+  propertyImagePath: string;
 }
 
 const PropertyApiService = {
@@ -95,19 +112,36 @@ const PropertyApiService = {
     propertyData: CreatePropertyData
   ): Promise<Property | null> => {
     try {
+      console.log(
+        "🌐 PropertyApiService.createProperty called with:",
+        propertyData
+      );
+      console.log("📡 Making POST request to /properties...");
+
       const response = await ApiManager.apiPost<ApiResponse<Property>>(
         "/properties",
         propertyData
       );
 
+      console.log("📦 Backend response:", response);
+
       if (response.responseCode === "00" && response.content) {
+        console.log(
+          "✅ Property created successfully on backend:",
+          response.content
+        );
         return response.content;
       } else {
-        console.error("Failed to create property:", response.responseMsg);
+        console.error("❌ Backend returned error:", response.responseMsg);
+        console.error("Full response:", response);
         return null;
       }
     } catch (error) {
-      console.error("Error creating property:", error);
+      console.error("💥 API call failed:", error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
       return null;
     }
   },
@@ -133,6 +167,44 @@ const PropertyApiService = {
       }
     } catch (error) {
       console.error("Error updating property:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get properties with pagination
+   */
+  getPropertiesPaginated: async (
+    page: number = 1,
+    limit: number = 3
+  ): Promise<PaginatedPropertiesResponse | null> => {
+    try {
+      interface PaginatedApiResponse {
+        responseCode: string;
+        responseMsg: string;
+        content: Property[];
+        pagination: PaginationInfo;
+        exception: string | null;
+      }
+
+      const response = await ApiManager.apiGet<PaginatedApiResponse>(
+        `/properties/paginated?page=${page}&limit=${limit}`
+      );
+
+      if (response.responseCode === "00" && response.content) {
+        return {
+          data: response.content,
+          pagination: response.pagination,
+        };
+      } else {
+        console.error(
+          "Failed to fetch paginated properties:",
+          response.responseMsg
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching paginated properties:", error);
       return null;
     }
   },

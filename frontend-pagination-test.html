@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Pagination Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .test-buttons {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .test-buttons button {
+            margin: 0 10px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+        }
+        .btn-homepage { background: #28a745; }
+        .btn-dashboard { background: #007bff; }
+        .btn-test { background: #17a2b8; }
+        
+        .feature-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .feature-list h3 {
+            color: #495057;
+            margin-top: 0;
+        }
+        .feature-list ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .feature-list li {
+            margin: 8px 0;
+            color: #6c757d;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 Property Management System - Frontend Updates</h1>
+        
+        <div class="feature-list">
+            <h3>✅ New Features Implemented:</h3>
+            <ul>
+                <li class="success">✓ Pagination support (3 properties per page)</li>
+                <li class="success">✓ Image URLs from backend (full HTTP URLs)</li>
+                <li class="success">✓ New PaginatedProperties component</li>
+                <li class="success">✓ Updated Redux slice with pagination state</li>
+                <li class="success">✓ Updated PropertyApiService with pagination methods</li>
+                <li class="success">✓ Enhanced ListingCard to use imageUrl field</li>
+                <li class="success">✓ Dashboard page now uses pagination</li>
+            </ul>
+        </div>
+
+        <div class="feature-list">
+            <h3>🔧 Technical Changes:</h3>
+            <ul>
+                <li class="info">Redux State: Added paginatedProperties, pagination, paginationLoading</li>
+                <li class="info">API Service: New getPropertiesPaginated() method</li>
+                <li class="info">Components: PaginatedProperties with navigation controls</li>
+                <li class="info">Image Handling: Priority to imageUrl field from backend</li>
+                <li class="info">Responsive Design: Pagination controls work on mobile</li>
+            </ul>
+        </div>
+
+        <div class="test-buttons">
+            <button class="btn-homepage" onclick="window.open('http://localhost:5000', '_blank')">
+                🏠 Open Homepage
+            </button>
+            <button class="btn-dashboard" onclick="window.open('http://localhost:5000/dashboard', '_blank')">
+                📊 Open Dashboard (Paginated)
+            </button>
+            <button class="btn-test" onclick="testPaginationAPI()">
+                🧪 Test Pagination API
+            </button>
+        </div>
+
+        <div id="api-test-result"></div>
+
+        <div class="feature-list">
+            <h3>📋 How to Use:</h3>
+            <ul>
+                <li><strong>Homepage:</strong> Shows featured properties (first 6 from all properties)</li>
+                <li><strong>Dashboard:</strong> Shows paginated properties (3 per page) with navigation</li>
+                <li><strong>Pagination:</strong> Previous/Next buttons and page numbers</li>
+                <li><strong>Images:</strong> Automatically loads from C:\\REFCOINS with fallback</li>
+                <li><strong>Loading States:</strong> Separate loading for pagination vs full load</li>
+            </ul>
+        </div>
+
+        <div class="feature-list">
+            <h3>🎯 API Endpoints Being Used:</h3>
+            <ul>
+                <li><code>GET /properties</code> - All properties (homepage)</li>
+                <li><code>GET /properties/paginated?page=1&limit=3</code> - Paginated properties (dashboard)</li>
+                <li><code>POST /properties/create-with-image</code> - Create property with image</li>
+                <li>Images served at: <code>http://localhost:7000/uploads/filename.jpg</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function testPaginationAPI() {
+            const resultDiv = document.getElementById('api-test-result');
+            resultDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite;"></div><p>Testing pagination API...</p></div>';
+            
+            try {
+                const response = await fetch('http://localhost:7000/properties/paginated?page=1&limit=3');
+                const result = await response.json();
+                
+                if (result.responseCode === '00') {
+                    resultDiv.innerHTML = `
+                        <div class="feature-list">
+                            <h3>✅ Pagination API Test Results:</h3>
+                            <ul>
+                                <li><strong>Status:</strong> <span class="success">SUCCESS</span></li>
+                                <li><strong>Current Page:</strong> ${result.pagination.currentPage}</li>
+                                <li><strong>Total Pages:</strong> ${result.pagination.totalPages}</li>
+                                <li><strong>Total Items:</strong> ${result.pagination.totalItems}</li>
+                                <li><strong>Items Per Page:</strong> ${result.pagination.itemsPerPage}</li>
+                                <li><strong>Has Next Page:</strong> ${result.pagination.hasNextPage ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Properties Returned:</strong> ${result.content.length}</li>
+                            </ul>
+                            <h4>Sample Property Data:</h4>
+                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px;">${JSON.stringify(result.content[0] || {}, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="feature-list">
+                            <h3>❌ API Test Failed:</h3>
+                            <p style="color: #dc3545;">${result.responseMsg}</p>
+                            <pre style="background: #f8d7da; padding: 15px; border-radius: 4px; color: #721c24;">${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="feature-list">
+                        <h3>❌ Network Error:</h3>
+                        <p style="color: #dc3545;">Could not connect to backend API: ${error.message}</p>
+                        <p style="color: #6c757d;">Make sure the backend server is running on http://localhost:7000</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Add CSS animation for loading spinner
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
