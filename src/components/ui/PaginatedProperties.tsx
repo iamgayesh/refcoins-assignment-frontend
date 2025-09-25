@@ -2,7 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { fetchPropertiesPaginated } from "../../redux/slices/propertySlice";
+import {
+  fetchPropertiesPaginated,
+  searchProperties,
+} from "../../redux/slices/propertySlice";
 import ListingCard from "./ListingCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -18,16 +21,39 @@ const PaginatedProperties: React.FC<PaginatedPropertiesProps> = ({
   description = "Browse through our property listings",
 }) => {
   const dispatch = useAppDispatch();
-  const { paginatedProperties, pagination, paginationLoading, error } =
-    useAppSelector((state) => state.property);
+  const {
+    paginatedProperties,
+    pagination,
+    paginationLoading,
+    error,
+    searchFilters,
+    isSearchMode,
+  } = useAppSelector((state) => state.property);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch paginated properties when component mounts
+  // Reset current page when search mode changes
   useEffect(() => {
-    dispatch(
-      fetchPropertiesPaginated({ page: currentPage, limit: itemsPerPage })
-    );
-  }, [dispatch, currentPage, itemsPerPage]);
+    setCurrentPage(1);
+  }, [isSearchMode]);
+
+  // Fetch paginated properties when component mounts or page changes
+  useEffect(() => {
+    if (isSearchMode && Object.keys(searchFilters).length > 0) {
+      // If in search mode, use search with current filters
+      dispatch(
+        searchProperties({
+          page: currentPage,
+          limit: itemsPerPage,
+          filters: searchFilters,
+        })
+      );
+    } else {
+      // Normal pagination mode
+      dispatch(
+        fetchPropertiesPaginated({ page: currentPage, limit: itemsPerPage })
+      );
+    }
+  }, [dispatch, currentPage, itemsPerPage, isSearchMode, searchFilters]);
 
   // Handle pagination
   const handlePageChange = (page: number) => {

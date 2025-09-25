@@ -1,3 +1,5 @@
+// src/app/layout.tsx
+import "./globals.css";
 import MainHeader from "../components/layout/MainHeader";
 import MainFooter from "../components/layout/MainFooter";
 import ReduxProvider from "../redux/Provider";

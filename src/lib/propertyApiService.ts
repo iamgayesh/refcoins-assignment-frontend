@@ -172,6 +172,62 @@ const PropertyApiService = {
   },
 
   /**
+   * Search properties with filters and pagination
+   */
+  searchProperties: async (
+    page: number = 1,
+    limit: number = 3,
+    filters: {
+      locationId?: number;
+      statusId?: number;
+      typeId?: number;
+    } = {}
+  ): Promise<PaginatedPropertiesResponse | null> => {
+    try {
+      interface SearchApiResponse {
+        responseCode: string;
+        responseMsg: string;
+        content: Property[];
+        pagination: PaginationInfo;
+        exception: string | null;
+      }
+
+      // Build query string
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (filters.locationId) {
+        queryParams.append("locationId", filters.locationId.toString());
+      }
+      if (filters.statusId) {
+        queryParams.append("statusId", filters.statusId.toString());
+      }
+      if (filters.typeId) {
+        queryParams.append("typeId", filters.typeId.toString());
+      }
+
+      const response = await ApiManager.apiGet<SearchApiResponse>(
+        `/properties/search?${queryParams.toString()}`
+      );
+
+      if (response.responseCode === "00" && response.content) {
+        return {
+          data: response.content,
+          pagination: response.pagination,
+        };
+      } else {
+        console.error("Failed to search properties:", response.responseMsg);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error searching properties:", error);
+      return null;
+    }
+  },
+
+  /**
    * Get properties with pagination
    */
   getPropertiesPaginated: async (

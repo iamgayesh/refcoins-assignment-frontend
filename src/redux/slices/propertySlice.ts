@@ -4,6 +4,12 @@ import PropertyApiService, {
   PaginationInfo,
 } from "../../lib/propertyApiService";
 
+export interface SearchFilters {
+  locationId?: number;
+  statusId?: number;
+  typeId?: number;
+}
+
 export interface PropertyState {
   properties: Property[];
   paginatedProperties: Property[];
@@ -12,6 +18,8 @@ export interface PropertyState {
   paginationLoading: boolean;
   error: string | null;
   selectedProperty: Property | null;
+  searchFilters: SearchFilters;
+  isSearchMode: boolean;
 }
 
 const initialState: PropertyState = {
@@ -22,6 +30,8 @@ const initialState: PropertyState = {
   paginationLoading: false,
   error: null,
   selectedProperty: null,
+  searchFilters: {},
+  isSearchMode: false,
 };
 
 // Async thunk for fetching all properties
@@ -69,6 +79,38 @@ export const fetchPropertiesPaginated = createAsyncThunk(
   }
 );
 
+// Async thunk for searching properties
+export const searchProperties = createAsyncThunk(
+  "property/searchProperties",
+  async (
+    {
+      page,
+      limit,
+      filters,
+    }: {
+      page: number;
+      limit?: number;
+      filters: {
+        locationId?: number;
+        statusId?: number;
+        typeId?: number;
+      };
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const result = await PropertyApiService.searchProperties(
+        page,
+        limit || 3,
+        filters
+      );
+      return result;
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
 const propertySlice = createSlice({
   name: "property",
   initialState,
@@ -81,6 +123,14 @@ const propertySlice = createSlice({
     },
     clearSelectedProperty: (state) => {
       state.selectedProperty = null;
+    },
+    setSearchFilters: (state, action: PayloadAction<SearchFilters>) => {
+      state.searchFilters = action.payload;
+      state.isSearchMode = Object.keys(action.payload).length > 0;
+    },
+    clearSearch: (state) => {
+      state.searchFilters = {};
+      state.isSearchMode = false;
     },
   },
   extraReducers: (builder) => {
@@ -131,10 +181,32 @@ const propertySlice = createSlice({
       .addCase(fetchPropertiesPaginated.rejected, (state, action) => {
         state.paginationLoading = false;
         state.error = action.payload as string;
+      })
+      // Search properties cases
+      .addCase(searchProperties.pending, (state) => {
+        state.paginationLoading = true;
+        state.error = null;
+      })
+      .addCase(searchProperties.fulfilled, (state, action) => {
+        state.paginationLoading = false;
+        if (action.payload) {
+          state.paginatedProperties = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+        state.error = null;
+      })
+      .addCase(searchProperties.rejected, (state, action) => {
+        state.paginationLoading = false;
+        state.error = action.payload as string;
       });
   },
 });
 
-export const { clearError, setSelectedProperty, clearSelectedProperty } =
-  propertySlice.actions;
+export const {
+  clearError,
+  setSelectedProperty,
+  clearSelectedProperty,
+  setSearchFilters,
+  clearSearch,
+} = propertySlice.actions;
 export default propertySlice.reducer;

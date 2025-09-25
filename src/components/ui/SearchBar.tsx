@@ -3,8 +3,16 @@
 import { useState, useEffect } from "react";
 import CommonButton from "./CommonButton";
 import useLookupData from "../../lib/useLookupData";
+import { useAppDispatch } from "../../redux/hooks";
+import {
+  searchProperties,
+  fetchPropertiesPaginated,
+  setSearchFilters,
+  clearSearch,
+} from "../../redux/slices/propertySlice";
 
 export default function SearchBar() {
+  const dispatch = useAppDispatch();
   const [filters, setFilters] = useState({
     location: "",
     status: "",
@@ -31,20 +39,42 @@ export default function SearchBar() {
 
   // Handle search functionality
   const handleSearch = () => {
-    const searchParams = {
-      locationId: filters.location,
-      statusId: filters.status,
-      typeId: filters.type,
+    const searchFilters = {
+      locationId: filters.location ? parseInt(filters.location, 10) : undefined,
+      statusId: filters.status ? parseInt(filters.status, 10) : undefined,
+      typeId: filters.type ? parseInt(filters.type, 10) : undefined,
     };
 
-    // You can customize this to call your actual search API
-    console.log("Search filters:", searchParams);
-    alert(JSON.stringify(searchParams, null, 2));
+    // Update global search filters
+    dispatch(setSearchFilters(searchFilters));
+
+    // Check if any filters are applied
+    if (
+      searchFilters.locationId ||
+      searchFilters.statusId ||
+      searchFilters.typeId
+    ) {
+      // Dispatch search action with filters
+      dispatch(
+        searchProperties({
+          page: 1,
+          limit: 3,
+          filters: searchFilters,
+        })
+      );
+    } else {
+      // If no filters, fetch all properties normally
+      dispatch(fetchPropertiesPaginated({ page: 1, limit: 3 }));
+    }
   };
 
   // Handle reset functionality
   const handleReset = () => {
     setFilters({ location: "", status: "", type: "" });
+    // Clear global search state
+    dispatch(clearSearch());
+    // Reset to show all properties
+    dispatch(fetchPropertiesPaginated({ page: 1, limit: 3 }));
   };
 
   return (
